@@ -1,15 +1,25 @@
 import React, { useState } from 'react'
+import './Form.css'
+import isEmail from 'validator/lib/isEmail'
 
-type InputFields = {
+interface InputFields {
   name: string
   email: string
 }
+interface Errors  {
+  name?: string
+  email?: string
+}
+
 type OnInputChange = (evt: React.ChangeEvent<HTMLInputElement>) => void
-type OnFormSubmit = (evt: React.FormEvent<HTMLFormElement>) => void 
+type OnFormSubmit = (evt: React.FormEvent<HTMLFormElement>) => void
+type Validate = (person: InputFields) => Errors
 
 const Form = () => {
   const [inputFields, setInputFields] = useState<InputFields>({name: '', email: ''})
   const [people, setPeople] = useState<InputFields[]>([])
+  const [fieldErros, setFieldErrors] = useState<Errors>({})
+ 
 
   const onInputChange: OnInputChange = evt => {
     const { name , value } = evt.target
@@ -20,11 +30,30 @@ const Form = () => {
   }
 
   const onFormSubmit: OnFormSubmit = evt => {
-    const ppl = [...people, inputFields]
-    setPeople(ppl)
-    setInputFields({name:'', email:''})
+    const person = inputFields
+    const fieldErrors = validate(person)
+    setFieldErrors( fieldErrors )
     evt.preventDefault()
+
+    if(Object.keys(fieldErrors).length) return 
+    
+    setPeople(prev => [...prev, person])
+    setInputFields({
+      name:'',
+      email: ''
+    })
+    
   }
+
+  const validate: Validate = person => {
+    const errors: Errors = {}
+      
+    if(!person.name) errors.name = 'Name Required'
+    if(!person.email) errors.email = 'Email Requied'
+    if(person.email && !isEmail(person.email)) errors.email = 'Invalid Email'
+    return errors
+  }
+
   return (
     <main>
       <form action="#"
@@ -38,6 +67,7 @@ const Form = () => {
             value={inputFields.name}
             onChange={onInputChange}
           />
+          <span className='errors'>{fieldErros.name}</span>
         </div>
         <div>
           <input 
@@ -47,6 +77,7 @@ const Form = () => {
             value={inputFields.email}
             onChange={onInputChange}
           />
+          <span className='errors'>{fieldErros.email}</span>
         </div>
         <input type="submit"/>
       </form>
