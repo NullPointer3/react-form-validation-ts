@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import  isEmail  from 'validator/lib/isEmail'
+import Field from './Field.tsx'
 
 interface InputFields {
   name: string,
@@ -11,9 +12,8 @@ interface Errors {
   email?: string
 }
 
-type OnInputChange = (evt: React.ChangeEvent<HTMLInputElement>) => void
 type OnFormSubmit = (evt: React.FormEvent<HTMLFormElement>) => void
-type Validate = (person: InputFields) => Errors
+type Validate = () => boolean
 
 
 const Form = () => {
@@ -24,30 +24,38 @@ const Form = () => {
   const [people, setPeople] = useState<InputFields[]>([])
   const [fieldErrors, setFieldErrors] = useState<Errors>({})
 
-  const onInputChange: OnInputChange = (evt) => { 
-    const { name,value } = evt.target
-    setInputFields(prev => ({
-      ...prev,
-      [name]: value
-    }))
+  const validate: Validate = () => {
+    const person = inputFields
+    const errors = fieldErrors 
+    const errMessages = Object.keys(errors).filter(k => errors[k])
 
+    if(!person.name) return true
+    if(!person.email) return true
+    if(errMessages.length) return true
+    return false
   }
 
-  const validate: Validate = (person) => {
-    const errors: Errors = {}
-    if(!person.name) errors.name = 'Name Required'
-    if(!person.email) errors.email = 'Email Required'
-    if(person.email && !isEmail(person.email)) errors.email = "Invalid Email"
-    return errors 
+  const onInputChange = ({name, value, error}: 
+    { 
+      name: string, 
+      value: string, 
+      error: string | boolean
+    }) => {
+    const fields = inputFields
+    const errors = fieldErrors
+    
+    fields[name] = value
+    errors[name] = error
+    
+    setInputFields(fields)
+    setFieldErrors(errors)
   }
 
   const onFormSubmit: OnFormSubmit = (evt) => {
     const person = inputFields
-    const errors = validate(person)
-    setFieldErrors(errors)
     evt.preventDefault()
 
-    if(Object.keys(errors).length) return
+    if(validate()) return
 
     setPeople(prev => [...prev, person])
     setInputFields({
@@ -56,39 +64,28 @@ const Form = () => {
     })
   }
   return (
-    <main className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-white shadow-lg rounded-lg p-6">
-        <form 
-        action=""
-        onSubmit={onFormSubmit}  
-        className="space-y-6"
-        >
-          <div className="flex flex-col">
-            <input 
-              type="text" 
-              name='name'
-              placeholder='Name'
-              value={inputFields.name}
-              onChange={onInputChange}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <span className="text-red-500 text-sm mt-1">{fieldErrors.name}</span>
-          </div>
-          <div className="flex flex-col">
-            <input 
-            type="text"
-            name='email'
+    <main className="">
+      <div className="">
+        <form onSubmit={onFormSubmit} >
+          <Field
+            placeholder="Name"
+            name="name"
+            value={inputFields.name}
+            onChange={onInputChange}
+            validate={val => (val? false : "Name Required")}
+          />
+          <Field
             placeholder='Email'
+            name='email'
             value={inputFields.email}
-            onChange={onInputChange} 
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />  
-            <span className="text-red-500 text-sm mt-1">{fieldErrors.email}</span>
-          </div>
+            onChange={onInputChange}
+            validate={val => (isEmail(val)? false: 'Invalid Email')}
+          />
           <input 
             type="submit" 
             value="Submit" 
-            className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className=""
+            disabled={validate()}
           />
         </form>
         <div className="mt-8">
